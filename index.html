@@ -212,9 +212,31 @@
   .leaflet-bar a{background:#fff!important;color:var(--ink)!important;border-color:var(--line)!important}
   .leaflet-control-attribution{background:rgba(255,255,255,.75)!important;color:var(--faint)!important}
 
+  .drawer{position:absolute;top:0;right:0;height:100%;width:380px;max-width:92vw;z-index:1500;
+    background:var(--paper);border-left:1px solid var(--line);box-shadow:-22px 0 55px -25px rgba(20,30,50,.45);
+    transform:translateX(103%);transition:transform .34s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column}
+  .drawer.open{transform:none}
+  .dw-top{display:flex;justify-content:flex-end;padding:12px 14px 0}
+  .dw-close{border:none;background:var(--paper2);width:34px;height:34px;border-radius:10px;cursor:pointer;
+    font-size:18px;color:var(--ink2);line-height:1}
+  .dw-close:hover{background:var(--line);color:var(--brand)}
+  .dw-body{padding:4px 22px 26px;overflow-y:auto;flex:1}
+  .dw-kicker{font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--brand)}
+  .dw-title{font-family:'Bricolage Grotesque';font-weight:800;font-size:27px;margin-top:6px;letter-spacing:-.01em}
+  .dw-sub{font-family:'IBM Plex Mono';font-size:10.5px;color:var(--muted);margin-top:5px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin:15px 0 4px}
+  .chip2{background:var(--paper2);border:1px solid var(--line);border-radius:11px;padding:9px 12px;min-width:78px}
+  .chip2 .v{font-family:'Bricolage Grotesque';font-weight:800;font-size:17px;color:var(--ink);line-height:1}
+  .chip2 .l{font-family:'IBM Plex Mono';font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-top:4px}
+  .dw-sec{margin-top:20px}
+  .dw-sec h4{font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+  .dw-sec h4 .avgnote{float:right;text-transform:none;letter-spacing:0;color:var(--muted)}
+  .cbox{position:relative;height:158px}
+
   @media(max-width:840px){
     .panel{left:12px;right:12px;width:auto;top:auto;bottom:12px;max-height:48vh}
     .masthead{flex-direction:column;gap:10px}.stat{padding:9px 12px;min-width:0}
+    .drawer{width:100%}
   }
 </style>
 </head>
@@ -257,6 +279,11 @@
         <div class="lg-ends"><span>sparse</span><span>dense</span></div>
       </div>
     </div>
+  </div>
+
+  <div class="drawer" id="drawer">
+    <div class="dw-top"><button class="dw-close" id="dwClose">×</button></div>
+    <div class="dw-body"></div>
   </div>
 
   <aside class="panel">
@@ -310,6 +337,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-delaunay@6/dist/d3-delaunay.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 const DATA = [{"id": "M01", "type": "Candidate", "brand": "Meijer (Proposed)", "street": "2615 Medical Center Pkwy", "city": "Murfreesboro", "zip": "37129", "lat": 35.860456, "lon": -86.442729, "cd": "TN-04", "inc": 91259}, {"id": "M02", "type": "Candidate", "brand": "Meijer (Proposed)", "street": "1800 Galleria Blvd", "city": "Franklin", "zip": "37067", "lat": 35.955826, "lon": -86.816311, "cd": "TN-07", "inc": 111759}, {"id": "M03", "type": "Candidate", "brand": "Meijer (Proposed)", "street": "300 Indian Lake Blvd", "city": "Hendersonville", "zip": "37075", "lat": 36.329642, "lon": -86.593583, "cd": "TN-06", "inc": 101850}, {"id": "M04", "type": "Candidate", "brand": "Meijer (Proposed)", "street": "401 S Mount Juliet Rd", "city": "Mount Juliet", "zip": "37122", "lat": 36.166158, "lon": -86.514343, "cd": "TN-05", "inc": 112967}, {"id": "M05", "type": "Candidate", "brand": "Meijer (Proposed)", "street": "1735 Nashville Pike", "city": "Gallatin", "zip": "37066", "lat": 36.353519, "lon": -86.507268, "cd": "TN-06", "inc": 81614}, {"id": "C01", "type": "Competitor", "brand": "Kroger", "street": "2131 Abbott Martin Rd", "city": "Nashville", "zip": "37215", "lat": 36.106146, "lon": -86.816823, "cd": "TN-05", "inc": 155863}, {"id": "C02", "type": "Competitor", "brand": "Kroger", "street": "5544 Old Hickory Blvd", "city": "Hermitage", "zip": "37076", "lat": 36.181564, "lon": -86.607225, "cd": "TN-05", "inc": 74663}, {"id": "C03", "type": "Competitor", "brand": "Walmart Supercenter", "street": "3458 Dickerson Pike", "city": "Nashville", "zip": "37207", "lat": 36.243981, "lon": -86.756608, "cd": "TN-07", "inc": 61744}, {"id": "C04", "type": "Competitor", "brand": "Walmart Supercenter", "street": "540 Gallatin Pike N", "city": "Madison", "zip": "37115", "lat": 36.257964, "lon": -86.713798, "cd": "TN-06", "inc": 54566}, {"id": "C05", "type": "Competitor", "brand": "Publix", "street": "2223 8th Ave S", "city": "Nashville", "zip": "37204", "lat": 36.129416, "lon": -86.778244, "cd": "TN-07", "inc": 109580}, {"id": "C06", "type": "Competitor", "brand": "Costco Wholesale", "street": "615 Old Hickory Blvd", "city": "Brentwood", "zip": "37027", "lat": 36.03995, "lon": -86.765827, "cd": "TN-05", "inc": 154578}, {"id": "C07", "type": "Competitor", "brand": "Target", "street": "2648 Gallatin Pike", "city": "Nashville", "zip": "37216", "lat": 36.198396, "lon": -86.741242, "cd": "TN-06", "inc": 86701}, {"id": "C08", "type": "Competitor", "brand": "Target", "street": "1701 Mallory Ln", "city": "Franklin", "zip": "37067", "lat": 35.966926, "lon": -86.813782, "cd": "TN-07", "inc": 111759}, {"id": "C09", "type": "Competitor", "brand": "Whole Foods Market", "street": "4021 Hillsboro Pike", "city": "Nashville", "zip": "37215", "lat": 36.10326, "lon": -86.816298, "cd": "TN-05", "inc": 155863}, {"id": "C10", "type": "Competitor", "brand": "Trader Joe's", "street": "3909 Hillsboro Pike", "city": "Nashville", "zip": "37215", "lat": 36.10479, "lon": -86.814702, "cd": "TN-05", "inc": 155863}, {"id": "C11", "type": "Competitor", "brand": "Costco Wholesale", "street": "3444 N Mount Juliet Rd", "city": "Mount Juliet", "zip": "37122", "lat": 36.218867, "lon": -86.515366, "cd": "TN-05", "inc": 112967}, {"id": "C12", "type": "Competitor", "brand": "Target", "street": "6814 Charlotte Pike", "city": "Nashville", "zip": "37209", "lat": 36.133839, "lon": -86.890426, "cd": "TN-07", "inc": 81423}, {"id": "C13", "type": "Competitor", "brand": "Kroger", "street": "4560 Harding Pike", "city": "Nashville", "zip": "37205", "lat": 36.124075, "lon": -86.849036, "cd": "TN-05", "inc": 139152}, {"id": "C14", "type": "Competitor", "brand": "Walmart Supercenter", "street": "5824 Nolensville Pike", "city": "Nashville", "zip": "37211", "lat": 36.043836, "lon": -86.713021, "cd": "TN-05", "inc": 71399}, {"id": "C15", "type": "Competitor", "brand": "Publix", "street": "782 Old Hickory Blvd", "city": "Brentwood", "zip": "37027", "lat": 36.041076, "lon": -86.779136, "cd": "TN-05", "inc": 154578}, {"id": "C16", "type": "Competitor", "brand": "Kroger", "street": "3410 Gallatin Pike", "city": "Nashville", "zip": "37216", "lat": 36.210266, "lon": -86.733515, "cd": "TN-06", "inc": 86701}, {"id": "C18", "type": "Competitor", "brand": "Aldi", "street": "3552 Dickerson Pike", "city": "Nashville", "zip": "37207", "lat": 36.25454, "lon": -86.757918, "cd": "TN-07", "inc": 61744}, {"id": "C19", "type": "Competitor", "brand": "Sam's Club", "street": "5624 Nolensville Pike", "city": "Nashville", "zip": "37211", "lat": 36.04737, "lon": -86.713412, "cd": "TN-05", "inc": 71399}, {"id": "C20", "type": "Competitor", "brand": "Target", "street": "1000 Rivergate Pkwy", "city": "Goodlettsville", "zip": "37072", "lat": 36.297745, "lon": -86.707862, "cd": "TN-06", "inc": 78123}];
 const BRAND_COLOR = {
@@ -424,14 +452,10 @@ DATA.forEach(d=>{
     html=`<div class="mk comp" style="--ring:${col};width:${sz}px;height:${sz}px"><div class="badge">${logoImg(dom,(d.brand[0]||"?"))}</div></div>`;
     m=L.marker([d.lat,d.lon],{icon:L.divIcon({className:'',html,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]})});
   }
-  m.bindPopup(popupHTML(d),{closeButton:true,autoPan:true,autoPanPadding:L.point(60,110),keepInView:true,maxWidth:280});
-  m.off('click');  // suppress default immediate open so it doesn't fight the zoom
   m.on('click',()=>{
-    m.setPopupContent(popupHTML(d));
     if(d.type==="Candidate")drawLinks(d);else linkLayer.clearLayers();
     map.flyTo([d.lat,d.lon],Math.max(13,map.getZoom()),{duration:.8});
-    map.once('moveend',()=>m.openPopup());
-    setTimeout(()=>{if(!m.isPopupOpen())m.openPopup();},900);  // fallback if no move
+    openDrawer(d);
   });
   m.bindTooltip(d.type==="Candidate"?`Candidate · ${d.city}`:`${d.brand} · ${d.city}`,{direction:'top',offset:[0,-11]});
   m.data=d;markers.push(m);
@@ -483,8 +507,7 @@ function render(){
 /* shared setters so the walkthrough and the UI stay in sync */
 function setHeat(on){heatOn=on;document.getElementById('heatToggle').classList.toggle('on',on);refreshHeat();}
 function setTerr(on){terrOn=on;document.getElementById('terrToggle').classList.toggle('on',on);refreshTerr();}
-function setBuffer(mi){state.buffer=mi;document.querySelectorAll('#bufSeg button').forEach(x=>x.classList.toggle('on',+x.dataset.mi===mi));
-  markers.forEach(m=>m.getPopup()&&m.setPopupContent(popupHTML(m.data)));render();}
+function setBuffer(mi){state.buffer=mi;document.querySelectorAll('#bufSeg button').forEach(x=>x.classList.toggle('on',+x.dataset.mi===mi));render();}
 
 /* stat strip */
 const districts=new Set(DATA.map(d=>d.cd)).size;
@@ -500,8 +523,7 @@ document.getElementById('ranking').innerHTML=cands.map((d,i)=>
    </div>`).join("");
 document.querySelectorAll('.rankrow').forEach(row=>{
   row.onclick=()=>{const d=cands.find(c=>c.id===row.dataset.id);
-    map.flyTo([d.lat,d.lon],13,{duration:1});
-    const mk=markers.find(m=>m.data.id===d.id);setTimeout(()=>{mk.setPopupContent(popupHTML(d));mk.openPopup();drawLinks(d);},1000);};
+    map.flyTo([d.lat,d.lon],13,{duration:1});drawLinks(d);openDrawer(d);};
 });
 setTimeout(()=>document.querySelectorAll('.rbar i').forEach(b=>b.style.width=b.dataset.w+'%'),300);
 
@@ -531,7 +553,57 @@ document.querySelectorAll('#baseSeg button').forEach(b=>{b.onclick=()=>{document
 document.getElementById('heatToggle').onclick=()=>setHeat(!heatOn);
 document.getElementById('terrToggle').onclick=()=>setTerr(!terrOn);
 /* reset */
-document.getElementById('resetBtn').onclick=()=>{linkLayer.clearLayers();map.closePopup();setHeat(false);setTerr(false);setBuffer(0);map.flyToBounds(homeBounds,{duration:.9});};
+document.getElementById('resetBtn').onclick=()=>{linkLayer.clearLayers();closeDrawer();setHeat(false);setTerr(false);setBuffer(0);map.flyToBounds(homeBounds,{duration:.9});};
+
+/* ---- Detail drawer with Chart.js charts ---- */
+let _charts=[];
+function _destroyCharts(){_charts.forEach(c=>{try{c.destroy();}catch(e){}});_charts=[];}
+const drawer=document.getElementById('drawer');
+function closeDrawer(){drawer.classList.remove('open');_destroyCharts();}
+document.getElementById('dwClose').onclick=closeDrawer;
+const AXIS={grid:{color:'#eef1f6'},ticks:{color:'#6b7789',font:{family:'IBM Plex Mono',size:9}}};
+function barChart(el,labels,data,colors,horizontal,fmtTick){
+  return new Chart(el,{type:'bar',data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:5,barPercentage:.72,categoryPercentage:.8}]},
+    options:{indexAxis:horizontal?'y':'x',responsive:true,maintainAspectRatio:false,animation:{duration:600},
+      plugins:{legend:{display:false},tooltip:{callbacks:fmtTick?{label:c=>fmtTick(c.raw)}:{}}},
+      scales:{x:{...AXIS,grid:{display:!horizontal,color:'#eef1f6'},ticks:{...AXIS.ticks,callback:function(v){return horizontal&&fmtTick?fmtTick(v):this.getLabelForValue(v);}}},
+        y:{...AXIS,grid:{display:horizontal,color:'#eef1f6'}}}}});
+}
+function chip(v,l){return `<div class="chip2"><div class="v">${v}</div><div class="l">${l}</div></div>`;}
+function openDrawer(d){
+  if(typeof Chart==="undefined")return;
+  _destroyCharts();
+  const dv=Math.round((d.inc/AVGINC-1)*100),body=drawer.querySelector('.dw-body');
+  const HL='#e4002b',LT='#cdd6e3';
+  if(d.type==="Candidate"){
+    const rank=cands.findIndex(c=>c.id===d.id)+1;
+    const nd=Math.min(...comps.map(c=>hav([d.lat,d.lon],[c.lat,c.lon])));
+    const c3=competitorsWithin(d,3),c5=competitorsWithin(d,5),c10=competitorsWithin(d,10);
+    body.innerHTML=`<div class="dw-kicker">Candidate site${d.rec?' · <b>Recommended</b>':''}</div>
+      <div class="dw-title">${d.city}</div><div class="dw-sub">${d.street}, ${d.city} ${d.zip} · ${d.cd}</div>
+      <div class="chips">${chip(d.score+'/100','Site score')}${chip(fmt(d.inc),'Median income')}${chip('#'+rank+' of '+cands.length,'Rank')}${chip(nd.toFixed(1)+' mi','Nearest rival')}</div>
+      <div class="dw-sec"><h4>Site score vs other candidates</h4><div class="cbox"><canvas id="dc1"></canvas></div></div>
+      <div class="dw-sec"><h4>Median income <span class="avgnote">metro avg ${fmt(AVGINC)}</span></h4><div class="cbox"><canvas id="dc2"></canvas></div></div>
+      <div class="dw-sec"><h4>Competitors within range</h4><div class="cbox"><canvas id="dc3"></canvas></div></div>`;
+    const byScore=[...cands];
+    _charts.push(barChart(document.getElementById('dc1'),byScore.map(c=>c.city),byScore.map(c=>c.score),byScore.map(c=>c.id===d.id?HL:LT),true));
+    const byInc=[...cands].sort((a,b)=>b.inc-a.inc);
+    _charts.push(barChart(document.getElementById('dc2'),byInc.map(c=>c.city),byInc.map(c=>c.inc),byInc.map(c=>c.id===d.id?HL:LT),true,v=>'$'+Number(v).toLocaleString()));
+    _charts.push(barChart(document.getElementById('dc3'),['≤3 mi','≤5 mi','≤10 mi'],[c3,c5,c10],[HL,HL,HL],false));
+  }else{
+    const nd=nearestCandDist(d);
+    body.innerHTML=`<div class="dw-kicker">Competitor · ${d.brand}</div>
+      <div class="dw-title">${d.brand}</div><div class="dw-sub">${d.street}, ${d.city} ${d.zip} · ${d.cd}</div>
+      <div class="chips">${chip(fmt(d.inc),'Median income')}${chip((dv>=0?'+':'')+dv+'%','vs metro')}${chip(nd.toFixed(1)+' mi','Nearest Meijer')}</div>
+      <div class="dw-sec"><h4>Distance to each Meijer candidate</h4><div class="cbox"><canvas id="dc1"></canvas></div></div>
+      <div class="dw-sec"><h4>Median income vs metro avg</h4><div class="cbox"><canvas id="dc2"></canvas></div></div>`;
+    const ds=cands.map(c=>({city:c.city,mi:+hav([d.lat,d.lon],[c.lat,c.lon]).toFixed(1)})).sort((a,b)=>a.mi-b.mi);
+    const mn=Math.min(...ds.map(x=>x.mi));
+    _charts.push(barChart(document.getElementById('dc1'),ds.map(x=>x.city),ds.map(x=>x.mi),ds.map(x=>x.mi===mn?HL:LT),true,v=>v+' mi'));
+    _charts.push(barChart(document.getElementById('dc2'),['This area','Metro avg'],[d.inc,AVGINC],[colorFor(d.brand),LT],false,v=>'$'+Number(v).toLocaleString()));
+  }
+  drawer.classList.add('open');
+}
 /* legend collapse */
 document.getElementById('lgToggle').onclick=()=>{const l=document.getElementById('legend');
   l.classList.toggle('min');document.getElementById('lgChevron').textContent=l.classList.contains('min')?'+':'–';};
@@ -551,7 +623,7 @@ async function runTour(){
   setHeat(false);setTerr(true);await say('03 · Whitespace','Each cell is a competitor\'s catchment. Larger, warmer cells sit farther from any store — the underserved areas.',4200);if(!playing){setTerr(false);return;}
   setTerr(false);
   const d=REC;map.flyTo([d.lat,d.lon],12,{duration:1.5});await sleep(1600);if(!playing)return;
-  setBuffer(10);const mk=markers.find(m=>m.data.id===d.id);mk.setPopupContent(popupHTML(d));mk.openPopup();drawLinks(d);
+  setBuffer(10);drawLinks(d);openDrawer(d);
   const nd=Math.min(...comps.map(c=>hav([d.lat,d.lon],[c.lat,c.lon]))).toFixed(1);
   await say('04 · Recommendation',`<b>${d.city}</b> scores ${d.score}/100 — the highest of any candidate. Median income ${fmt(d.inc)} with only ${d.n10} competitors within 10 miles.`,4600);if(!playing)return;
   await say('05 · Why it wins',`The nearest competitor is ${nd} miles away. High income, open trade area — the strongest balance of demand and low competition.`,4200);if(!playing)return;
