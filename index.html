@@ -562,12 +562,17 @@ const drawer=document.getElementById('drawer');
 function closeDrawer(){drawer.classList.remove('open');_destroyCharts();}
 document.getElementById('dwClose').onclick=closeDrawer;
 const AXIS={grid:{color:'#eef1f6'},ticks:{color:'#6b7789',font:{family:'IBM Plex Mono',size:9}}};
-function barChart(el,labels,data,colors,horizontal,fmtTick){
+function barChart(el,labels,data,colors,horizontal,fmtTick,intVal){
+  const valAxis=horizontal?'x':'y',catAxis=horizontal?'y':'x';
+  const valTicks={color:'#6b7789',font:{family:'IBM Plex Mono',size:9}};
+  if(intVal){valTicks.precision=0;valTicks.stepSize=1;}
+  if(fmtTick)valTicks.callback=function(v){return fmtTick(v);};
+  const scales={};
+  scales[valAxis]={beginAtZero:true,grid:{color:'#eef1f6'},ticks:valTicks};
+  scales[catAxis]={grid:{display:false},ticks:{color:'#6b7789',font:{family:'IBM Plex Mono',size:9}}};
   return new Chart(el,{type:'bar',data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:5,barPercentage:.72,categoryPercentage:.8}]},
     options:{indexAxis:horizontal?'y':'x',responsive:true,maintainAspectRatio:false,animation:{duration:600},
-      plugins:{legend:{display:false},tooltip:{callbacks:fmtTick?{label:c=>fmtTick(c.raw)}:{}}},
-      scales:{x:{...AXIS,grid:{display:!horizontal,color:'#eef1f6'},ticks:{...AXIS.ticks,callback:function(v){return horizontal&&fmtTick?fmtTick(v):this.getLabelForValue(v);}}},
-        y:{...AXIS,grid:{display:horizontal,color:'#eef1f6'}}}}});
+      plugins:{legend:{display:false},tooltip:{callbacks:fmtTick?{label:c=>fmtTick(c.raw)}:{}}},scales}});
 }
 function chip(v,l){return `<div class="chip2"><div class="v">${v}</div><div class="l">${l}</div></div>`;}
 function openDrawer(d){
@@ -589,7 +594,7 @@ function openDrawer(d){
     _charts.push(barChart(document.getElementById('dc1'),byScore.map(c=>c.city),byScore.map(c=>c.score),byScore.map(c=>c.id===d.id?HL:LT),true));
     const byInc=[...cands].sort((a,b)=>b.inc-a.inc);
     _charts.push(barChart(document.getElementById('dc2'),byInc.map(c=>c.city),byInc.map(c=>c.inc),byInc.map(c=>c.id===d.id?HL:LT),true,v=>'$'+Number(v).toLocaleString()));
-    _charts.push(barChart(document.getElementById('dc3'),['≤3 mi','≤5 mi','≤10 mi'],[c3,c5,c10],[HL,HL,HL],false));
+    _charts.push(barChart(document.getElementById('dc3'),['≤3 mi','≤5 mi','≤10 mi'],[c3,c5,c10],[HL,HL,HL],false,null,true));
   }else{
     const nd=nearestCandDist(d);
     body.innerHTML=`<div class="dw-kicker">Competitor · ${d.brand}</div>
