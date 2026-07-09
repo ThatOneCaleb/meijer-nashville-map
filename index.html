@@ -361,13 +361,23 @@ function bar(label,val,max,disp,col){const w=Math.max(4,Math.min(100,(val/max)*1
     +`<div class="bt"><i style="width:${w}%${col?';background:'+col:''}"></i></div></div>`;}
 function popupHTML(d){
   const hi=d.type==="Candidate"?"hi":"";let rows="",chart="";
-  rows+=`<span class="k">Median HH Inc</span><span class="v ${hi}">${fmt(d.inc)}</span><span class="k">District</span><span class="v">${d.cd}</span>`;
+  const dv=Math.round((d.inc/AVGINC-1)*100);
+  rows+=`<span class="k">Median HH Inc</span><span class="v ${hi}">${fmt(d.inc)}</span>`
+    +`<span class="k">vs metro avg</span><span class="v" style="color:${dv>=0?'#1f9d57':'#e01e5a'}">${dv>=0?'+':''}${dv}%</span>`
+    +`<span class="k">District</span><span class="v">${d.cd}</span>`
+    +`<span class="k">ZIP</span><span class="v">${d.zip}</span>`
+    +`<span class="k">Coordinates</span><span class="v">${d.lat.toFixed(3)}, ${d.lon.toFixed(3)}</span>`;
   if(d.type==="Candidate"){
-    const c5=competitorsWithin(d,5),c10=competitorsWithin(d,10),nd=Math.min(...comps.map(c=>hav([d.lat,d.lon],[c.lat,c.lon])));
-    rows+=`<span class="k">Site score</span><span class="v hi">${d.score}/100</span><span class="k">Nearest rival</span><span class="v">${nd.toFixed(1)} mi</span>`;
+    const c3=competitorsWithin(d,3),c5=competitorsWithin(d,5),c10=competitorsWithin(d,10);
+    const nd=Math.min(...comps.map(c=>hav([d.lat,d.lon],[c.lat,c.lon])));
+    const rank=cands.findIndex(c=>c.id===d.id)+1;
+    rows+=`<span class="k">Site score</span><span class="v hi">${d.score}/100</span>`
+      +`<span class="k">Rank</span><span class="v">#${rank} of ${cands.length}</span>`
+      +`<span class="k">Nearest rival</span><span class="v">${nd.toFixed(1)} mi</span>`;
     chart=`<div class="chart"><div class="ct">Location insights</div>`
       +bar('Site score',d.score,100,d.score+'/100')
       +bar('Median income',d.inc,160000,fmt(d.inc))
+      +bar('Competitors ≤3 mi',c3,8,String(c3))
       +bar('Competitors ≤5 mi',c5,8,String(c5))
       +bar('Competitors ≤10 mi',c10,8,String(c10))+`</div>`;
   }else{
@@ -375,6 +385,7 @@ function popupHTML(d){
     rows+=`<span class="k">Nearest Meijer</span><span class="v">${nd.toFixed(1)} mi</span>`;
     chart=`<div class="chart"><div class="ct">Location insights</div>`
       +bar('Median income',d.inc,160000,fmt(d.inc),col)
+      +bar('Income vs metro',Math.abs(dv),60,(dv>=0?'+':'')+dv+'%',col)
       +bar('Dist. to nearest candidate',nd,25,nd.toFixed(1)+' mi',col)+`</div>`;
   }
   return `<div class="pop"><div class="pb">${d.type==="Candidate"?"Candidate site":"Competitor · "+d.brand}</div>`
@@ -406,6 +417,7 @@ function logoImg(dom,initial){
 
 /* marker size scales with median income so sizes read at a glance */
 const _inc=DATA.map(d=>d.inc).filter(x=>x!=null),INCMIN=Math.min(..._inc),INCMAX=Math.max(..._inc);
+const AVGINC=Math.round(_inc.reduce((a,b)=>a+b,0)/_inc.length);
 function sizeFor(d){const t=Math.max(0,Math.min(1,(d.inc-INCMIN)/((INCMAX-INCMIN)||1)));
   if(d.type==="Candidate")return d.rec?58:Math.round(44+t*12);
   return Math.round(22+t*22);}  // competitors 22–44px by income
@@ -420,7 +432,7 @@ DATA.forEach(d=>{
     html=`<div class="mk comp" style="--ring:${col};width:${sz}px;height:${sz}px"><div class="badge">${logoImg(dom,(d.brand[0]||"?"))}</div></div>`;
     m=L.marker([d.lat,d.lon],{icon:L.divIcon({className:'',html,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]})});
   }
-  m.on('click',()=>{m.setPopupContent(popupHTML(d));if(d.type==="Candidate")drawLinks(d);else linkLayer.clearLayers();});
+  m.on('click',()=>{map.flyTo([d.lat,d.lon],13,{duration:.8});m.setPopupContent(popupHTML(d));if(d.type==="Candidate")drawLinks(d);else linkLayer.clearLayers();});
   m.bindPopup(popupHTML(d),{closeButton:false});
   m.bindTooltip(d.type==="Candidate"?`Candidate · ${d.city}`:`${d.brand} · ${d.city}`,{direction:'top',offset:[0,-11]});
   m.data=d;markers.push(m);
