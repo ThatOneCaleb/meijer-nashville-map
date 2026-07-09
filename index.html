@@ -41,8 +41,13 @@
   .kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--brand);
     box-shadow:0 0 0 0 var(--brand-glow);animation:beat 2.4s infinite}
   @keyframes beat{0%{box-shadow:0 0 0 0 var(--brand-glow)}70%{box-shadow:0 0 0 11px rgba(228,0,43,0)}100%{box-shadow:0 0 0 0 rgba(228,0,43,0)}}
+  .brandrow{display:flex;align-items:center;gap:13px;margin-top:7px}
+  .mlogo{width:40px;height:40px;border-radius:11px;background:#fff;border:1px solid var(--line);
+    box-shadow:0 4px 10px -3px rgba(20,30,50,.3);display:grid;place-items:center;flex:0 0 auto;
+    font-family:'Bricolage Grotesque';font-weight:800;color:var(--brand);font-size:22px;overflow:hidden}
+  .mlogo img{width:74%;height:74%;object-fit:contain}
   .title{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;
-    font-size:clamp(24px,2.8vw,38px);line-height:.92;letter-spacing:-.02em;margin-top:5px;color:var(--ink)}
+    font-size:clamp(24px,2.8vw,38px);line-height:.92;letter-spacing:-.02em;color:var(--ink)}
   .title em{font-style:normal;color:var(--brand)}
   .statstrip{pointer-events:auto;display:flex;background:var(--paper);
     border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
@@ -127,14 +132,21 @@
   .pfoot button:hover{border-color:var(--brand);color:var(--brand)}
   .pfoot .src{font-family:'IBM Plex Mono';font-size:8.5px;color:var(--faint);line-height:1.5;text-align:right}
 
-  .cand-mk{position:relative;width:28px;height:28px}
-  .cand-mk .core{position:absolute;inset:7px;border-radius:50%;background:var(--brand);
-    border:2px solid #fff;box-shadow:0 0 0 2px var(--brand-glow),0 2px 6px rgba(0,0,0,.3)}
-  .cand-mk .ring{position:absolute;inset:2px;border-radius:50%;border:2px solid var(--brand);animation:pulse 2.6s infinite;opacity:0}
-  .cand-mk.rec{width:34px;height:34px}
-  .cand-mk.rec .core{inset:9px;background:var(--brand);box-shadow:0 0 0 3px rgba(245,166,35,.5),0 3px 8px rgba(0,0,0,.35)}
-  .cand-mk.rec .ring{border-color:var(--gold)}
-  @keyframes pulse{0%{transform:scale(.55);opacity:.85}100%{transform:scale(1.85);opacity:0}}
+  /* logo-badge markers with depth + hover lift */
+  .mk{position:relative;width:34px;height:34px;transition:transform .16s cubic-bezier(.2,.8,.2,1)}
+  .mk:hover{transform:scale(1.22) translateY(-2px);z-index:600}
+  .mk .badge{position:absolute;inset:0;border-radius:50%;background:#fff;border:2px solid var(--ring,#8a97ab);
+    box-shadow:0 4px 10px -2px rgba(20,30,50,.4),0 1px 2px rgba(20,30,50,.3);display:grid;place-items:center;overflow:hidden}
+  .mk .badge img{width:70%;height:70%;object-fit:contain}
+  .mk .fallback{font-family:'Bricolage Grotesque';font-weight:800;font-size:13px;color:var(--ring,#555);display:none;place-items:center;width:100%;height:100%}
+  .mk.cand{width:42px;height:42px}
+  .mk.cand .badge{border-color:var(--brand);border-width:3px;box-shadow:0 6px 16px -3px rgba(228,0,43,.55),0 2px 4px rgba(0,0,0,.3)}
+  .mk.cand .fallback{color:var(--brand);font-size:16px}
+  .mk.rec{width:48px;height:48px}
+  .mk.rec .badge{border-color:var(--gold);box-shadow:0 0 0 4px rgba(245,166,35,.4),0 8px 20px -4px rgba(228,0,43,.6)}
+  .mk .pulse{position:absolute;inset:-2px;border-radius:50%;border:2px solid var(--brand);animation:pulse 2.6s infinite;opacity:0;pointer-events:none}
+  .mk.rec .pulse{border-color:var(--gold)}
+  @keyframes pulse{0%{transform:scale(.6);opacity:.8}100%{transform:scale(1.7);opacity:0}}
 
   .leaflet-popup-content-wrapper{background:#fff;color:var(--ink);border-radius:14px;border:1px solid var(--line2);box-shadow:var(--shadow-lg)}
   .leaflet-popup-tip{background:#fff;border:1px solid var(--line2)}
@@ -202,7 +214,11 @@
   <header class="masthead">
     <div class="brandbox">
       <div class="kicker"><span class="dot"></span>Meijer · Market Expansion</div>
-      <h1 class="title">Nashville <em>Site Analysis</em></h1>
+      <div class="brandrow">
+        <span class="mlogo"><img src="https://www.google.com/s2/favicons?domain=meijer.com&sz=128"
+          onerror="if(!this.dataset.f){this.dataset.f=1;this.src='https://icons.duckduckgo.com/ip3/meijer.com.ico'}else{this.style.display='none';this.parentNode.textContent='m'}" alt="Meijer"></span>
+        <h1 class="title">Nashville <em>Site Analysis</em></h1>
+      </div>
     </div>
     <div class="mh-right">
       <div class="statstrip" id="stripTop"></div>
@@ -216,7 +232,7 @@
     <div class="lg-body">
       <div class="lg-i"><span class="lg-dot cand"></span>Candidate site</div>
       <div class="lg-i"><span class="lg-dot rec"></span>Recommended site</div>
-      <div class="lg-i"><span class="lg-dot comp"></span>Competitor <em>(color = brand)</em></div>
+      <div class="lg-i"><span class="lg-dot comp"></span>Competitor <em>(brand logo)</em></div>
       <div class="lg-i"><span class="lg-ring"></span>Trade-area buffer</div>
       <div class="lg-scale">
         <div class="lg-lab">Territory size / demand</div>
@@ -354,15 +370,28 @@ function drawLinks(d){
   });
 }
 
+/* real company logos: Google favicon (crisp) -> DuckDuckGo fallback -> letter badge */
+const DOMAIN={"Kroger":"kroger.com","Walmart Supercenter":"walmart.com","Publix":"publix.com",
+  "Costco Wholesale":"costco.com","Target":"target.com","Whole Foods Market":"wholefoodsmarket.com",
+  "Trader Joe's":"traderjoes.com","Aldi":"aldi.us","Sam's Club":"samsclub.com","Meijer (Proposed)":"meijer.com"};
+function logoImg(dom,initial){
+  const g=`https://www.google.com/s2/favicons?domain=${dom}&sz=128`;
+  const dd=`https://icons.duckduckgo.com/ip3/${dom}.ico`;
+  return `<img src="${g}" data-dd="${dd}" alt=""
+    onerror="if(!this.dataset.f){this.dataset.f=1;this.src=this.dataset.dd}else{this.style.display='none';this.nextElementSibling.style.display='grid'}">`
+    +`<span class="fallback">${initial}</span>`;
+}
+
 DATA.forEach(d=>{
-  let m;
+  let m,html,sz;
   if(d.type==="Candidate"){
-    const html=`<div class="cand-mk ${d.rec?'rec':''}"><div class="ring"></div><div class="core"></div></div>`;
-    m=L.marker([d.lat,d.lon],{icon:L.divIcon({className:'',html,iconSize:[28,28],iconAnchor:[14,14]}),zIndexOffset:1000});
+    html=`<div class="mk cand ${d.rec?'rec':''}"><div class="pulse"></div><div class="badge">${logoImg('meijer.com','m')}</div></div>`;
+    sz=d.rec?48:42;
+    m=L.marker([d.lat,d.lon],{icon:L.divIcon({className:'',html,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]}),zIndexOffset:1000});
   }else{
-    const col=colorFor(d.brand);
-    m=L.circleMarker([d.lat,d.lon],{radius:8,color:'#fff',weight:2,fillColor:col,fillOpacity:.95});
-    m.on('mouseover',()=>m.setStyle({radius:12}));m.on('mouseout',()=>m.setStyle({radius:8}));
+    const col=colorFor(d.brand),dom=DOMAIN[d.brand]||"";
+    html=`<div class="mk comp" style="--ring:${col}"><div class="badge">${logoImg(dom,(d.brand[0]||"?"))}</div></div>`;
+    m=L.marker([d.lat,d.lon],{icon:L.divIcon({className:'',html,iconSize:[32,32],iconAnchor:[16,16]})});
   }
   m.on('click',()=>{m.setPopupContent(popupHTML(d));if(d.type==="Candidate")drawLinks(d);else linkLayer.clearLayers();});
   m.bindPopup(popupHTML(d),{closeButton:false});
