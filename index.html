@@ -574,6 +574,19 @@ function barChart(el,labels,data,colors,horizontal,fmtTick,intVal){
     options:{indexAxis:horizontal?'y':'x',responsive:true,maintainAspectRatio:false,animation:{duration:600},
       plugins:{legend:{display:false},tooltip:{callbacks:fmtTick?{label:c=>fmtTick(c.raw)}:{}}},scales}});
 }
+/* estimated income trend: real current ZIP value, shaped by real U.S. ACS median-income growth */
+const USIDX={2015:55775,2016:57617,2017:60336,2018:61937,2019:65712,2020:67521,2021:69717,2022:74580,2023:77540,2024:80610};
+const IYEARS=Object.keys(USIDX).map(Number);
+function incomeSeries(inc){const base=USIDX[2024];return IYEARS.map(y=>Math.round(inc*USIDX[y]/base));}
+function lineChart(el,labels,data,color){
+  return new Chart(el,{type:'line',data:{labels,datasets:[{data,borderColor:color||'#e4002b',
+    backgroundColor:'rgba(228,0,43,.10)',fill:true,tension:.3,pointRadius:3,pointHoverRadius:5,
+    pointBackgroundColor:color||'#e4002b',borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:700},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'$'+Number(c.raw).toLocaleString()}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#6b7789',font:{family:'IBM Plex Mono',size:9},maxRotation:0,autoSkip:true,maxTicksLimit:6}},
+        y:{grid:{color:'#eef1f6'},ticks:{color:'#6b7789',font:{family:'IBM Plex Mono',size:9},callback:v=>'$'+Math.round(v/1000)+'k'}}}}});
+}
 function chip(v,l){return `<div class="chip2"><div class="v">${v}</div><div class="l">${l}</div></div>`;}
 function openDrawer(d){
   if(typeof Chart==="undefined")return;
@@ -589,23 +602,27 @@ function openDrawer(d){
       <div class="chips">${chip(d.score+'/100','Site score')}${chip(fmt(d.inc),'Median income')}${chip('#'+rank+' of '+cands.length,'Rank')}${chip(nd.toFixed(1)+' mi','Nearest rival')}</div>
       <div class="dw-sec"><h4>Site score vs other candidates</h4><div class="cbox"><canvas id="dc1"></canvas></div></div>
       <div class="dw-sec"><h4>Median income <span class="avgnote">metro avg ${fmt(AVGINC)}</span></h4><div class="cbox"><canvas id="dc2"></canvas></div></div>
-      <div class="dw-sec"><h4>Competitors within range</h4><div class="cbox"><canvas id="dc3"></canvas></div></div>`;
+      <div class="dw-sec"><h4>Competitors within range</h4><div class="cbox"><canvas id="dc3"></canvas></div></div>
+      <div class="dw-sec"><h4>Median income over time <span class="avgnote">est. trend</span></h4><div class="cbox"><canvas id="dcT"></canvas></div></div>`;
     const byScore=[...cands];
     _charts.push(barChart(document.getElementById('dc1'),byScore.map(c=>c.city),byScore.map(c=>c.score),byScore.map(c=>c.id===d.id?HL:LT),true));
     const byInc=[...cands].sort((a,b)=>b.inc-a.inc);
     _charts.push(barChart(document.getElementById('dc2'),byInc.map(c=>c.city),byInc.map(c=>c.inc),byInc.map(c=>c.id===d.id?HL:LT),true,v=>'$'+Number(v).toLocaleString()));
     _charts.push(barChart(document.getElementById('dc3'),['≤3 mi','≤5 mi','≤10 mi'],[c3,c5,c10],[HL,HL,HL],false,null,true));
+    _charts.push(lineChart(document.getElementById('dcT'),IYEARS,incomeSeries(d.inc)));
   }else{
     const nd=nearestCandDist(d);
     body.innerHTML=`<div class="dw-kicker">Competitor · ${d.brand}</div>
       <div class="dw-title">${d.brand}</div><div class="dw-sub">${d.street}, ${d.city} ${d.zip} · ${d.cd}</div>
       <div class="chips">${chip(fmt(d.inc),'Median income')}${chip((dv>=0?'+':'')+dv+'%','vs metro')}${chip(nd.toFixed(1)+' mi','Nearest Meijer')}</div>
       <div class="dw-sec"><h4>Distance to each Meijer candidate</h4><div class="cbox"><canvas id="dc1"></canvas></div></div>
-      <div class="dw-sec"><h4>Median income vs metro avg</h4><div class="cbox"><canvas id="dc2"></canvas></div></div>`;
+      <div class="dw-sec"><h4>Median income vs metro avg</h4><div class="cbox"><canvas id="dc2"></canvas></div></div>
+      <div class="dw-sec"><h4>Median income over time <span class="avgnote">est. trend</span></h4><div class="cbox"><canvas id="dcT"></canvas></div></div>`;
     const ds=cands.map(c=>({city:c.city,mi:+hav([d.lat,d.lon],[c.lat,c.lon]).toFixed(1)})).sort((a,b)=>a.mi-b.mi);
     const mn=Math.min(...ds.map(x=>x.mi));
     _charts.push(barChart(document.getElementById('dc1'),ds.map(x=>x.city),ds.map(x=>x.mi),ds.map(x=>x.mi===mn?HL:LT),true,v=>v+' mi'));
     _charts.push(barChart(document.getElementById('dc2'),['This area','Metro avg'],[d.inc,AVGINC],[colorFor(d.brand),LT],false,v=>'$'+Number(v).toLocaleString()));
+    _charts.push(lineChart(document.getElementById('dcT'),IYEARS,incomeSeries(d.inc),colorFor(d.brand)));
   }
   drawer.classList.add('open');
 }
