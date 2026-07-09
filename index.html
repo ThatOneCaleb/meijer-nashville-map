@@ -158,6 +158,12 @@
   .pop .pg .k{color:var(--faint);font-family:'IBM Plex Mono';font-size:10px}
   .pop .pg .v{text-align:right;font-weight:700}
   .pop .v.hi{color:var(--brand)}
+  .pop .chart{margin-top:11px;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:9px;min-width:210px}
+  .pop .chart .ct{font-family:'IBM Plex Mono';font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+  .pop .bar .bl{display:flex;justify-content:space-between;font-family:'IBM Plex Mono';font-size:10px;color:var(--muted);margin-bottom:4px}
+  .pop .bar .bl span:last-child{color:var(--ink);font-weight:700}
+  .pop .bar .bt{height:7px;border-radius:5px;background:var(--line);overflow:hidden}
+  .pop .bar .bt i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--gold),var(--brand));transition:width .5s cubic-bezier(.2,.8,.2,1)}
   .mile{background:#fff!important;border:1px solid var(--brand)!important;color:var(--brand)!important;
     font-family:'IBM Plex Mono'!important;font-size:9px!important;font-weight:600;border-radius:6px!important;
     padding:1px 5px!important;box-shadow:0 1px 4px rgba(0,0,0,.15)!important}
@@ -234,6 +240,7 @@
       <div class="lg-i"><span class="lg-dot rec"></span>Recommended site</div>
       <div class="lg-i"><span class="lg-dot comp"></span>Competitor <em>(brand logo)</em></div>
       <div class="lg-i"><span class="lg-ring"></span>Trade-area buffer</div>
+      <div class="lg-i"><span style="display:inline-flex;align-items:center;gap:3px;flex:0 0 auto"><i style="width:8px;height:8px;border-radius:50%;background:var(--faint);display:inline-block"></i><i style="width:15px;height:15px;border-radius:50%;background:var(--faint);display:inline-block"></i></span>Bigger marker = higher income</div>
       <div class="lg-scale">
         <div class="lg-lab">Territory size / demand</div>
         <div class="lg-bar terr"></div>
@@ -348,17 +355,32 @@ const state={types:{Candidate:true,Competitor:true},brands:{},minInc:0,buffer:0}
 function visible(d){return state.types[d.type]&&(d.type==="Candidate"||state.brands[d.brand])&&(d.inc==null||d.inc>=state.minInc);}
 function competitorsWithin(d,mi){return comps.filter(c=>visible(c)&&hav([d.lat,d.lon],[c.lat,c.lon])<=mi).length;}
 
+function nearestCandDist(d){return Math.min(...cands.map(c=>hav([d.lat,d.lon],[c.lat,c.lon])));}
+function bar(label,val,max,disp,col){const w=Math.max(4,Math.min(100,(val/max)*100));
+  return `<div class="bar"><div class="bl"><span>${label}</span><span>${disp}</span></div>`
+    +`<div class="bt"><i style="width:${w}%${col?';background:'+col:''}"></i></div></div>`;}
 function popupHTML(d){
-  const hi=d.type==="Candidate"?"hi":"";let extra="";
+  const hi=d.type==="Candidate"?"hi":"";let rows="",chart="";
+  rows+=`<span class="k">Median HH Inc</span><span class="v ${hi}">${fmt(d.inc)}</span><span class="k">District</span><span class="v">${d.cd}</span>`;
   if(d.type==="Candidate"){
-    extra+=`<span class="k">Site score</span><span class="v hi">${d.score}/100</span>`;
-    if(state.buffer>0) extra+=`<span class="k">In ${state.buffer} mi</span><span class="v">${competitorsWithin(d,state.buffer)} competitors</span>`;
+    const c5=competitorsWithin(d,5),c10=competitorsWithin(d,10),nd=Math.min(...comps.map(c=>hav([d.lat,d.lon],[c.lat,c.lon])));
+    rows+=`<span class="k">Site score</span><span class="v hi">${d.score}/100</span><span class="k">Nearest rival</span><span class="v">${nd.toFixed(1)} mi</span>`;
+    chart=`<div class="chart"><div class="ct">Location insights</div>`
+      +bar('Site score',d.score,100,d.score+'/100')
+      +bar('Median income',d.inc,160000,fmt(d.inc))
+      +bar('Competitors ≤5 mi',c5,8,String(c5))
+      +bar('Competitors ≤10 mi',c10,8,String(c10))+`</div>`;
+  }else{
+    const nd=nearestCandDist(d),col=colorFor(d.brand);
+    rows+=`<span class="k">Nearest Meijer</span><span class="v">${nd.toFixed(1)} mi</span>`;
+    chart=`<div class="chart"><div class="ct">Location insights</div>`
+      +bar('Median income',d.inc,160000,fmt(d.inc),col)
+      +bar('Dist. to nearest candidate',nd,25,nd.toFixed(1)+' mi',col)+`</div>`;
   }
-  return `<div class="pop"><div class="pb">${d.type==="Candidate"?"Candidate site":"Competitor · "+d.brand}</div>
-    <div class="pt">${d.type==="Candidate"?d.city:d.brand}</div>
-    <div class="pa">${d.street}, ${d.city} ${d.zip}</div>
-    <div class="pg"><span class="k">Median HH Inc</span><span class="v ${hi}">${fmt(d.inc)}</span>
-    <span class="k">District</span><span class="v">${d.cd}</span>${extra}</div></div>`;
+  return `<div class="pop"><div class="pb">${d.type==="Candidate"?"Candidate site":"Competitor · "+d.brand}</div>`
+    +`<div class="pt">${d.type==="Candidate"?d.city:d.brand}</div>`
+    +`<div class="pa">${d.street}, ${d.city} ${d.zip}</div>`
+    +`<div class="pg">${rows}</div>${chart}</div>`;
 }
 
 function drawLinks(d){
@@ -382,16 +404,21 @@ function logoImg(dom,initial){
     +`<span class="fallback">${initial}</span>`;
 }
 
+/* marker size scales with median income so sizes read at a glance */
+const _inc=DATA.map(d=>d.inc).filter(x=>x!=null),INCMIN=Math.min(..._inc),INCMAX=Math.max(..._inc);
+function sizeFor(d){const t=Math.max(0,Math.min(1,(d.inc-INCMIN)/((INCMAX-INCMIN)||1)));
+  if(d.type==="Candidate")return d.rec?58:Math.round(44+t*12);
+  return Math.round(22+t*22);}  // competitors 22–44px by income
+
 DATA.forEach(d=>{
-  let m,html,sz;
+  let m,html;const sz=sizeFor(d);
   if(d.type==="Candidate"){
-    html=`<div class="mk cand ${d.rec?'rec':''}"><div class="pulse"></div><div class="badge">${logoImg('meijer.com','m')}</div></div>`;
-    sz=d.rec?48:42;
+    html=`<div class="mk cand ${d.rec?'rec':''}" style="width:${sz}px;height:${sz}px"><div class="pulse"></div><div class="badge">${logoImg('meijer.com','m')}</div></div>`;
     m=L.marker([d.lat,d.lon],{icon:L.divIcon({className:'',html,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]}),zIndexOffset:1000});
   }else{
     const col=colorFor(d.brand),dom=DOMAIN[d.brand]||"";
-    html=`<div class="mk comp" style="--ring:${col}"><div class="badge">${logoImg(dom,(d.brand[0]||"?"))}</div></div>`;
-    m=L.marker([d.lat,d.lon],{icon:L.divIcon({className:'',html,iconSize:[32,32],iconAnchor:[16,16]})});
+    html=`<div class="mk comp" style="--ring:${col};width:${sz}px;height:${sz}px"><div class="badge">${logoImg(dom,(d.brand[0]||"?"))}</div></div>`;
+    m=L.marker([d.lat,d.lon],{icon:L.divIcon({className:'',html,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]})});
   }
   m.on('click',()=>{m.setPopupContent(popupHTML(d));if(d.type==="Candidate")drawLinks(d);else linkLayer.clearLayers();});
   m.bindPopup(popupHTML(d),{closeButton:false});
