@@ -158,15 +158,17 @@
   .pop .pg .k{color:var(--faint);font-family:'IBM Plex Mono';font-size:10px}
   .pop .pg .v{text-align:right;font-weight:700}
   .pop .v.hi{color:var(--brand)}
-  .pop .chart{margin-top:11px;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:11px;min-width:224px}
-  .pop .chart .ct{font-family:'IBM Plex Mono';font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);display:flex;justify-content:space-between}
-  .pop .chart .ct em{font-style:normal;text-transform:none;letter-spacing:0;color:var(--ink2)}
-  .pop .bar .bl{display:flex;justify-content:space-between;font-family:'IBM Plex Mono';font-size:10px;color:var(--muted);margin-bottom:4px}
-  .pop .bar .bl span:last-child{color:var(--ink);font-weight:700}
-  .pop .bar .bt{position:relative;height:9px;border-radius:5px;background:var(--line)}
-  .pop .bar .bt i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--gold),var(--brand));transition:width .5s cubic-bezier(.2,.8,.2,1)}
-  .pop .bar .tick{position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:2px;background:var(--ink2)}
-  .pop .bar .bs{display:flex;justify-content:space-between;font-family:'IBM Plex Mono';font-size:8px;color:var(--faint);margin-top:3px}
+  .pop{min-width:236px}
+  .pscore{display:flex;align-items:center;gap:13px;margin:11px 0;padding:9px 12px;background:var(--paper2);border:1px solid var(--line);border-radius:13px}
+  .donut{width:54px;height:54px;flex:0 0 auto}
+  .scmeta .scl{font-family:'Bricolage Grotesque';font-weight:800;font-size:15px;color:var(--ink)}
+  .scmeta .scr{font-family:'IBM Plex Mono';font-size:10px;color:var(--muted);margin-top:3px}
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+  .tile{background:var(--paper2);border:1px solid var(--line);border-radius:11px;padding:9px 11px}
+  .tile .tv{font-family:'Bricolage Grotesque';font-weight:800;font-size:17px;color:var(--ink);line-height:1}
+  .tile .tl{font-family:'IBM Plex Mono';font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-top:5px}
+  .tile .td{font-size:9.5px;font-weight:700;margin-top:4px}
+  .tile .td.pos{color:#1f9d57}.tile .td.neg{color:#e01e5a}
   .mile{background:#fff!important;border:1px solid var(--brand)!important;color:var(--brand)!important;
     font-family:'IBM Plex Mono'!important;font-size:9px!important;font-weight:600;border-radius:6px!important;
     padding:1px 5px!important;box-shadow:0 1px 4px rgba(0,0,0,.15)!important}
@@ -360,49 +362,28 @@ function visible(d){return state.types[d.type]&&(d.type==="Candidate"||state.bra
 function competitorsWithin(d,mi){return comps.filter(c=>visible(c)&&hav([d.lat,d.lon],[c.lat,c.lon])<=mi).length;}
 
 function nearestCandDist(d){return Math.min(...cands.map(c=>hav([d.lat,d.lon],[c.lat,c.lon])));}
-/* clear, scaled bar: shows value, a 0→max scale, and optional 'metro avg' tick */
-function bar(o){
-  const w=Math.max(3,Math.min(100,(o.val/o.max)*100));
-  const tick=(o.avg!=null)?`<span class="tick" style="left:${Math.min(100,(o.avg/o.max)*100)}%"></span>`:'';
-  const scale=o.scale?`<div class="bs"><span>0</span><span>${o.scale}</span></div>`:'';
-  return `<div class="bar"><div class="bl"><span>${o.label}</span><span>${o.disp}</span></div>`
-    +`<div class="bt"><i style="width:${w}%${o.col?';background:'+o.col:''}"></i>${tick}</div>${scale}</div>`;
-}
+function donut(score){const R=22,C=2*Math.PI*R,off=C*(1-score/100);
+  return `<svg class="donut" viewBox="0 0 54 54"><circle cx="27" cy="27" r="22" fill="none" stroke="#e6ebf2" stroke-width="6"/>`
+    +`<circle cx="27" cy="27" r="22" fill="none" stroke="#e4002b" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 27 27)"/>`
+    +`<text x="27" y="33" text-anchor="middle" font-family="Bricolage Grotesque,sans-serif" font-weight="800" font-size="17" fill="#141922">${score}</text></svg>`;}
+function tile(v,l,extra){return `<div class="tile"><div class="tv">${v}</div><div class="tl">${l}</div>${extra||''}</div>`;}
 function popupHTML(d){
-  const hi=d.type==="Candidate"?"hi":"";let rows="",chart="";
   const dv=Math.round((d.inc/AVGINC-1)*100);
-  rows+=`<span class="k">Median HH Inc</span><span class="v ${hi}">${fmt(d.inc)}</span>`
-    +`<span class="k">vs metro avg</span><span class="v" style="color:${dv>=0?'#1f9d57':'#e01e5a'}">${dv>=0?'+':''}${dv}%</span>`
-    +`<span class="k">District</span><span class="v">${d.cd}</span>`
-    +`<span class="k">ZIP</span><span class="v">${d.zip}</span>`
-    +`<span class="k">Coordinates</span><span class="v">${d.lat.toFixed(3)}, ${d.lon.toFixed(3)}</span>`;
+  const dvTag=`<div class="td ${dv>=0?'pos':'neg'}">${dv>=0?'+':''}${dv}% vs metro</div>`;
+  const head=`<div class="pb">${d.type==="Candidate"?("Candidate site"+(d.rec?" · Recommended":"")):("Competitor · "+d.brand)}</div>`
+    +`<div class="pt">${d.type==="Candidate"?d.city:d.brand}</div><div class="pa">${d.street}, ${d.city} ${d.zip}</div>`;
   if(d.type==="Candidate"){
-    const c3=competitorsWithin(d,3),c5=competitorsWithin(d,5),c10=competitorsWithin(d,10);
-    const nd=Math.min(...comps.map(c=>hav([d.lat,d.lon],[c.lat,c.lon])));
+    const c10=competitorsWithin(d,10),nd=Math.min(...comps.map(c=>hav([d.lat,d.lon],[c.lat,c.lon])));
     const rank=cands.findIndex(c=>c.id===d.id)+1;
-    const m3=Math.max(1,...cands.map(c=>competitorsWithin(c,3)));
-    const m5=Math.max(1,...cands.map(c=>competitorsWithin(c,5)));
-    const m10=Math.max(1,...cands.map(c=>competitorsWithin(c,10)));
-    rows+=`<span class="k">Site score</span><span class="v hi">${d.score}/100</span>`
-      +`<span class="k">Rank</span><span class="v">#${rank} of ${cands.length}</span>`
-      +`<span class="k">Nearest rival</span><span class="v">${nd.toFixed(1)} mi</span>`;
-    chart=`<div class="chart"><div class="ct"><span>Location insights</span><em>▏ metro avg</em></div>`
-      +bar({label:'Site score',val:d.score,max:100,disp:d.score+' / 100',scale:'100'})
-      +bar({label:'Median income',val:d.inc,max:160000,disp:fmt(d.inc)+` (${dv>=0?'+':''}${dv}%)`,avg:AVGINC,scale:'$160k'})
-      +bar({label:'Competitors ≤3 mi',val:c3,max:m3,disp:`${c3} store${c3===1?'':'s'}`,scale:`${m3} max`,col:'#e01e5a'})
-      +bar({label:'Competitors ≤5 mi',val:c5,max:m5,disp:`${c5} store${c5===1?'':'s'}`,scale:`${m5} max`,col:'#e01e5a'})
-      +bar({label:'Competitors ≤10 mi',val:c10,max:m10,disp:`${c10} store${c10===1?'':'s'}`,scale:`${m10} max`,col:'#e01e5a'})+`</div>`;
-  }else{
-    const nd=nearestCandDist(d),col=colorFor(d.brand);
-    rows+=`<span class="k">Nearest Meijer</span><span class="v">${nd.toFixed(1)} mi</span>`;
-    chart=`<div class="chart"><div class="ct"><span>Location insights</span><em>▏ metro avg</em></div>`
-      +bar({label:'Median income',val:d.inc,max:160000,disp:fmt(d.inc)+` (${dv>=0?'+':''}${dv}%)`,avg:AVGINC,scale:'$160k',col:col})
-      +bar({label:'Distance to nearest Meijer site',val:nd,max:25,disp:nd.toFixed(1)+' mi',scale:'25 mi',col:col})+`</div>`;
+    return `<div class="pop cand">${head}`
+      +`<div class="pscore">${donut(d.score)}<div class="scmeta"><div class="scl">Site score</div><div class="scr">Rank #${rank} of ${cands.length}</div></div></div>`
+      +`<div class="tiles">`+tile(fmt(d.inc),'Median income',dvTag)+tile(nd.toFixed(1)+' mi','Nearest rival')
+        +tile(c10,'Rivals ≤10 mi')+tile(d.cd,'District')+`</div></div>`;
   }
-  return `<div class="pop"><div class="pb">${d.type==="Candidate"?"Candidate site":"Competitor · "+d.brand}</div>`
-    +`<div class="pt">${d.type==="Candidate"?d.city:d.brand}</div>`
-    +`<div class="pa">${d.street}, ${d.city} ${d.zip}</div>`
-    +`<div class="pg">${rows}</div>${chart}</div>`;
+  const nd=nearestCandDist(d);
+  return `<div class="pop">${head}<div class="tiles">`
+    +tile(fmt(d.inc),'Median income',dvTag)+tile(nd.toFixed(1)+' mi','Nearest Meijer')
+    +tile(d.cd,'District')+tile(d.zip,'ZIP')+`</div></div>`;
 }
 
 function drawLinks(d){
@@ -443,9 +424,15 @@ DATA.forEach(d=>{
     html=`<div class="mk comp" style="--ring:${col};width:${sz}px;height:${sz}px"><div class="badge">${logoImg(dom,(d.brand[0]||"?"))}</div></div>`;
     m=L.marker([d.lat,d.lon],{icon:L.divIcon({className:'',html,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]})});
   }
-  m.on('click',()=>{m.setPopupContent(popupHTML(d));if(d.type==="Candidate")drawLinks(d);else linkLayer.clearLayers();
-    map.flyTo([d.lat,d.lon],Math.max(13,map.getZoom()),{duration:.85});});
-  m.bindPopup(popupHTML(d),{closeButton:false,autoPan:false});
+  m.bindPopup(popupHTML(d),{closeButton:true,autoPan:true,autoPanPadding:L.point(60,110),keepInView:true,maxWidth:280});
+  m.off('click');  // suppress default immediate open so it doesn't fight the zoom
+  m.on('click',()=>{
+    m.setPopupContent(popupHTML(d));
+    if(d.type==="Candidate")drawLinks(d);else linkLayer.clearLayers();
+    map.flyTo([d.lat,d.lon],Math.max(13,map.getZoom()),{duration:.8});
+    map.once('moveend',()=>m.openPopup());
+    setTimeout(()=>{if(!m.isPopupOpen())m.openPopup();},900);  // fallback if no move
+  });
   m.bindTooltip(d.type==="Candidate"?`Candidate · ${d.city}`:`${d.brand} · ${d.city}`,{direction:'top',offset:[0,-11]});
   m.data=d;markers.push(m);
 });
